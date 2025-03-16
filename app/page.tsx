@@ -1,14 +1,16 @@
 "use client"
 
-import { useState } from "react"
-import { MapPin, Navigation, Bus, Train, AlertCircle, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Navigation, Bus, Train, AlertCircle, Loader2, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { type TransitOption, type Route, findNearestStations, generateRoutes } from "@/utils/routing"
 import { getCoordinatesForLocation } from "@/utils/distance"
+import NavigationMode from "@/components/navigation-mode"
+import ShareRouteDialog from "@/components/share-route-dialog"
+import LocationInput from "@/components/location-input"
 
 interface Location {
   name: string
@@ -40,9 +42,16 @@ export default function TransitFinder() {
     routeGenerationTime: number
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [navigationRoute, setNavigationRoute] = useState<Route | null>(null)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [routeToShare, setRouteToShare] = useState<Route | null>(null)
   const { toast } = useToast()
 
-  
+  // Ensure consistent initial state values
+  useEffect(() => {
+    setFromInput(fromLocation?.name || "")
+    setToInput(toLocation?.name || "")
+  }, [fromLocation, toLocation])
 
   // Get user's current location
   const getUserLocation = () => {
@@ -145,8 +154,8 @@ export default function TransitFinder() {
 
     try {
       // Get coordinates for locations if not already set
-      const fromCoordinates = fromLocation?.coordinates || await getCoordinatesForLocation(fromInput)
-      const toCoordinates = toLocation?.coordinates || await getCoordinatesForLocation(toInput)
+      const fromCoordinates = fromLocation?.coordinates || (await getCoordinatesForLocation(fromInput))
+      const toCoordinates = toLocation?.coordinates || (await getCoordinatesForLocation(toInput))
 
       if (!fromCoordinates || !fromCoordinates.lat || !fromCoordinates.lng) {
         throw new Error("Could not find coordinates for your starting location.")
@@ -220,6 +229,31 @@ export default function TransitFinder() {
     }
   }
 
+  // Start navigation for a route
+  const startNavigation = (route: Route) => {
+    setNavigationRoute(route)
+    toast({
+      title: "Navigation started",
+      description: "Follow the directions to reach your destination",
+    })
+  }
+
+  // Exit navigation mode
+  const exitNavigation = () => {
+    setNavigationRoute(null)
+  }
+
+  // Open share dialog for a route
+  const openShareDialog = (route: Route) => {
+    setRouteToShare(route)
+    setShareDialogOpen(true)
+  }
+
+  // If in navigation mode, show the navigation UI
+  if (navigationRoute) {
+    return <NavigationMode route={navigationRoute} onExit={exitNavigation} />
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <div className="flex flex-col items-center mb-8">
@@ -240,47 +274,36 @@ export default function TransitFinder() {
       <Card className="w-full mb-8">
         <CardContent className="pt-6">
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="from" className="text-sm font-medium">
-                From
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  id="from"
-                  placeholder="Your current location"
-                  value={fromInput}
-                  onChange={(e) => {
-                    setFromInput(e.target.value)
-                    setFromLocation({ name: e.target.value })
-                  }}
-                  className="flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={getUserLocation}
-                  disabled={isLocating}
-                  title="Use current location"
-                >
-                  {isLocating ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
+            <LocationInput
+              id="from"
+              label="From"
+              placeholder="Your current location"
+              value={fromInput}
+              onChange={(value, coordinates) => {
+                setFromInput(value)
+                setFromLocation({
+                  name: value,
+                  coordinates: coordinates,
+                })
+              }}
+              showLocationButton={true}
+              isLocating={isLocating}
+              onUseCurrentLocation={getUserLocation}
+            />
 
-            <div className="space-y-2">
-              <label htmlFor="to" className="text-sm font-medium">
-                To
-              </label>
-              <Input
-                id="to"
-                placeholder="Where do you want to go?"
-                value={toInput}
-                onChange={(e) => {
-                  setToInput(e.target.value)
-                  setToLocation({ name: e.target.value })
-                }}
-              />
-            </div>
+            <LocationInput
+              id="to"
+              label="To"
+              placeholder="Where do you want to go?"
+              value={toInput}
+              onChange={(value, coordinates) => {
+                setToInput(value)
+                setToLocation({
+                  name: value,
+                  coordinates: coordinates,
+                })
+              }}
+            />
 
             <Button onClick={handleSearch} disabled={isSearching} className="w-full">
               {isSearching ? (
@@ -350,16 +373,38 @@ export default function TransitFinder() {
           <h2 className="text-xl font-semibold mb-4">Recommended Routes</h2>
           <div className="space-y-4">
             {routes.map((route) => (
-              <RouteCard key={route.id} route={route} />
+              <RouteCard
+                key={route.id}
+                route={route}
+                onStartNavigation={() => startNavigation(route)}
+                onShareRoute={() => openShareDialog(route)}
+              />
             ))}
           </div>
         </div>
+      )}
+
+      {/* Share Route Dialog */}
+      {routeToShare && (
+        <ShareRouteDialog
+          route={routeToShare}
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          fromLocation={fromInput}
+          toLocation={toInput}
+        />
       )}
     </div>
   )
 }
 
-function RouteCard({ route }: { route: Route }) {
+interface RouteCardProps {
+  route: Route
+  onStartNavigation: () => void
+  onShareRoute: () => void
+}
+
+function RouteCard({ route, onStartNavigation, onShareRoute }: RouteCardProps) {
   const [expanded, setExpanded] = useState(false)
 
   return (
@@ -455,8 +500,14 @@ function RouteCard({ route }: { route: Route }) {
         )}
 
         <div className="mt-4 flex gap-2">
-          <Button className="flex-1">Start Navigation</Button>
-          <Button variant="outline">Share Route</Button>
+          <Button className="flex-1" onClick={onStartNavigation}>
+            <Navigation className="h-4 w-4 mr-2" />
+            Start Navigation
+          </Button>
+          <Button variant="outline" onClick={onShareRoute}>
+            <Share2 className="h-4 w-4 mr-2" />
+            Share Route
+          </Button>
         </div>
       </CardContent>
     </Card>

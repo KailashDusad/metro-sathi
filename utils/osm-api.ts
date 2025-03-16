@@ -184,7 +184,7 @@ function detectCity(tags: any): string {
 export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371 // Earth's radius in km
   const dLat = toRad(lat2 - lat1)
-  const dLon = toRad(lat2 - lat1)
+  const dLon = toRad(lon2 - lon1)
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
@@ -199,18 +199,13 @@ function toRad(degrees: number): number {
 /**
  * Check if two stations are on the same metro line
  */
-export async function areStationsOnSameLine(station1: Station, station2: Station): Promise<boolean> {
-  // If both stations are Delhi Metro, they're potentially connected
-  if (station1.network === "Delhi Metro" && station2.network === "Delhi Metro") {
-    return true
-  }
-
+export async function areStationsOnSameLine(station1: string, station2: string): Promise<boolean> {
   try {
     const query = `
       [out:json][timeout:25];
       (
-        rel(around:500,${station1.location.lat},${station1.location.lng})["route"="subway"];
-        rel(around:500,${station2.location.lat},${station2.location.lng})["route"="subway"];
+        rel(around:500,${station1})["route"="subway"];
+        rel(around:500,${station2})["route"="subway"];
       );
       out body;
     `
@@ -236,13 +231,6 @@ export async function areStationsOnSameLine(station1: Station, station2: Station
 
 /**
  * Fetch transit stations for both origin and destination locations
- *
- * @param originLat Origin latitude
- * @param originLng Origin longitude
- * @param destLat Destination latitude
- * @param destLng Destination longitude
- * @param radius Search radius in meters
- * @returns Promise resolving to an object containing stations near origin and destination
  */
 export async function fetchTransitStationsForRoute(
   originLat: number,
@@ -268,6 +256,159 @@ export async function fetchTransitStationsForRoute(
       originStations: [],
       destinationStations: [],
     }
+  }
+}
+
+/**
+ * Fetch map data from OSM for a specific network type
+ * @param lat Center latitude
+ * @param lng Center longitude
+ * @param networkType Type of network to fetch (roads, subway, bus)
+ * @param radius Search radius in meters
+ */
+export async function fetchOsmMapData(lat: number, lng: number, networkType = "roads", radius = 1000): Promise<any> {
+  try {
+    // Build query based on network type
+    let query = ""
+
+    switch (networkType) {
+      case "subway":
+        query = `
+          [out:json][timeout:25];
+          (
+            // Metro lines and stations
+            way["railway"="subway"](around:${radius},${lat},${lng});
+            relation["route"="subway"](around:${radius},${lat},${lng});
+            node["railway"="station"]["station"="subway"](around:${radius},${lat},${lng});
+            node["railway"="station"]["station"="metro"](around:${radius},${lat},${lng});
+            way["railway"="station"]["station"="subway"](around:${radius},${lat},${lng});
+            way["railway"="station"]["station"="metro"](around:${radius},${lat},${lng});
+          );
+          out body;
+          >;
+          out skel qt;
+        `
+        break
+
+      case "bus":
+        query = `
+          [out:json][timeout:25];
+          (
+            // Bus routes and stops
+            relation["route"="bus"](around:${radius},${lat},${lng});
+            node["highway"="bus_stop"](around:${radius},${lat},${lng});
+            node["amenity"="bus_station"](around:${radius},${lat},${lng});
+            way["highway"]["name"](around:${radius},${lat},${lng});
+          );
+          out body;
+          >;
+          out skel qt;
+        `
+        break
+
+      default: // roads
+        query = `
+          [out:json][timeout:25];
+          (
+            // Roads and paths
+            way["highway"](around:${radius},${lat},${lng});
+            way["footway"](around:${radius},${lat},${lng});
+            way["path"](around:${radius},${lat},${lng});
+          );
+          out body;
+          >;
+          out skel qt;
+        `
+    }
+
+    // Execute the query with retries
+    let response
+    let retries = 3
+    while (retries > 0) {
+      try {
+        const endpoint = getOverpassEndpoint()
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: `data=${encodeURIComponent(query)}`,
+        })
+
+        if (response.ok) break
+        retries--
+      } catch (error) {
+        console.warn(`Retry attempt ${3 - retries} failed:`, error)
+        retries--
+        if (retries > 0) await new Promise((resolve) => setTimeout(resolve, 1000))
+      }
+    }
+
+    if (!response?.ok) {
+      throw new Error(`Failed to fetch map data from Overpass API after retries`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("Error fetching OSM map data:", error)
+    return null
+  }
+}
+
+/**
+ * Fetch route geometry between two points
+ * @param fromLat Start latitude
+ * @param fromLng Start longitude
+ * @param toLat End latitude
+ * @param toLng End longitude
+ * @param profile Routing profile (foot, driving, rail)
+ * @returns Array of [lat, lng] coordinates representing the route
+ */
+export async function fetchRouteGeometry(
+  fromLat: number,
+  fromLng: number,
+  toLat: number,
+  toLng: number,
+  profile = "foot",
+): Promise<Array<[number, number]>> {
+  try {
+    // For demo purposes, we'll simulate a route with waypoints
+    // In a real app, you would use a routing API like OSRM, GraphHopper, or Mapbox Directions
+
+    // Create a basic route with some waypoints
+    const points: Array<[number, number]> = []
+    points.push([fromLat, fromLng])
+
+    // Generate waypoints based on profile
+    const numPoints = profile === "foot" ? 8 : profile === "driving" ? 6 : 3
+    const jitterFactor = profile === "foot" ? 0.0008 : profile === "driving" ? 0.0005 : 0.0002
+
+    // Create a path with slight deviations to simulate roads
+    for (let i = 1; i <= numPoints; i++) {
+      const ratio = i / (numPoints + 1)
+      const lat = fromLat + (toLat - fromLat) * ratio
+      const lng = fromLng + (toLng - fromLng) * ratio
+
+      // Add some randomness to make it look like a real path
+      // For metro/rail, make it more direct with less jitter
+      const jitterLat =
+        profile === "rail" ? (Math.random() - 0.5) * jitterFactor * 0.5 : (Math.random() - 0.5) * jitterFactor
+
+      const jitterLng =
+        profile === "rail" ? (Math.random() - 0.5) * jitterFactor * 0.5 : (Math.random() - 0.5) * jitterFactor
+
+      points.push([lat + jitterLat, lng + jitterLng])
+    }
+
+    points.push([toLat, toLng])
+    return points
+  } catch (error) {
+    console.error("Error fetching route geometry:", error)
+    // Return a direct line as fallback
+    return [
+      [fromLat, fromLng],
+      [toLat, toLng],
+    ]
   }
 }
 

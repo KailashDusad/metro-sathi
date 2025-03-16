@@ -28,6 +28,10 @@ export interface RouteStep {
   duration: number
   distance: number
   instructions?: string
+  location?: {
+    lat: number
+    lng: number
+  }
 }
 
 export interface Route {
@@ -203,7 +207,7 @@ export async function generateRoutes(fromLocation: Location, toLocation: Locatio
           duration: Math.round(endStation.distance! * 15),
         }
 
-        // Create route steps
+        // Create route steps with location data for map display
         const steps: RouteStep[] = [
           {
             type: "walk",
@@ -212,6 +216,7 @@ export async function generateRoutes(fromLocation: Location, toLocation: Locatio
             duration: walkToStation.duration,
             distance: walkToStation.distance,
             instructions: `Walk to ${startStation.name}`,
+            location: fromLocation.coordinates,
           },
         ]
 
@@ -226,6 +231,7 @@ export async function generateRoutes(fromLocation: Location, toLocation: Locatio
             instructions: sameLine
               ? `Take metro directly from ${startStation.name} to ${endStation.name}`
               : `Take metro from ${startStation.name} to ${endStation.name} (may require transfer)`,
+            location: startStation.location,
           })
         } else {
           // Handle bus or mixed transit
@@ -236,6 +242,7 @@ export async function generateRoutes(fromLocation: Location, toLocation: Locatio
             duration: transitSegment.duration,
             distance: transitSegment.distance,
             instructions: `Take ${startStation.type} from ${startStation.name} to ${endStation.name}`,
+            location: startStation.location,
           })
         }
 
@@ -247,6 +254,7 @@ export async function generateRoutes(fromLocation: Location, toLocation: Locatio
           duration: walkFromStation.duration,
           distance: walkFromStation.distance,
           instructions: `Walk from ${endStation.name} to your destination`,
+          location: endStation.location,
         })
 
         // Calculate total duration and add route
