@@ -96,7 +96,7 @@ export async function loadMetroNetworkData(): Promise<Station[]> {
     }
 
     // Load the data from the JSON file
-    const response = await fetch("../public/data/metroNetworkData.json")
+    const response = await fetch("/data/metroNetworkData.json")
     if (!response.ok) {
       throw new Error(`Failed to load metro network data: ${response.status}`)
     }
