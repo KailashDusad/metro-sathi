@@ -1,0 +1,127 @@
+{
+    "version": 0.6,
+    "generator": "Overpass API 0.7.62.5 1bd436f1",
+    "osm3s": {
+      "timestamp_osm_base": "2025-03-16T11:14:00Z",
+      "timestamp_areas_base": "2025-02-06T02:17:44Z",
+      "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+    },
+    "elements": [
+      {
+        "type": "node",
+        "id": 30518283,
+        "lat": 19.3826676,
+        "lon": 72.8320245,
+        "tags": {
+          "internet_access": "no",
+          "name": "Vasai Road",
+          "name:hi": "वसई रोड",
+          "name:ja": "ヴァサイー",
+          "name:mr": "वसई रोड",
+          "network": "Mumbai Suburban Railway",
+          "network:wikidata": "Q3273422",
+          "operator": "WR",
+          "public_transport": "station",
+          "railway": "station",
+          "ref": "BSR",
+          "train": "yes",
+          "wikidata": "Q7916309",
+          "wikipedia": "en:Vasai Road railway station"
+        }
+      },
+      {
+        "type": "way",
+        "id": 28438814,
+        "nodes": [
+          312456642,
+          292355230,
+          6082767741,
+          6082767740,
+          6082767739,
+          292355228,
+          292355227,
+          6082767738,
+          292355226
+        ],
+        "tags": {
+          "electrified": "contact_line",
+          "frequency": "50",
+          "gauge": "1676",
+          "passenger_lines": "1",
+          "railway": "rail",
+          "usage": "branch",
+          "voltage": "25000"
+        }
+      },
+      {
+        "type": "way",
+        "id": 28438815,
+        "nodes": [
+          312456682,
+          312456642
+        ],
+        "tags": {
+          "bridge": "yes",
+          "electrified": "contact_line",
+          "frequency": "50",
+          "gauge": "1676",
+          "layer": "1",
+          "passenger_lines": "1",
+          "railway": "rail",
+          "usage": "branch",
+          "voltage": "25000"
+        }
+      },
+      {
+        "type": "node",
+        "id": 7263610251,
+        "lat": 18.4645408,
+        "lon": 74.5690933
+      },
+
+      {
+        "type": "node",
+        "id": 7263610271,
+        "lat": 18.4638972,
+        "lon": 74.5752516
+      },
+      {
+        "type": "node",
+        "id": 7944139846,
+        "lat": 24.2269313,
+        "lon": 72.461146
+      },
+      {
+        "type": "way",
+        "id": 720949710,
+        "nodes": [
+          5679482137,
+          5679482136,
+          5310705170,
+          5679482140,
+          5679482139,
+          5310705171,
+          5679482138,
+          5310705172,
+          5960618969,
+          5310705173,
+          5310705174,
+          5310705175,
+          5310705186,
+          5960618953,
+          5960618952,
+          5960618954,
+          5679480901,
+          5679480900,
+          5310705176,
+          5960618957,
+          5960618959,
+          5960618966,
+          5310705180,
+          5310705181,
+          5310705182,
+          5679480913
+        ]
+      }
+    ]
+  }
