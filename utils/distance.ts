@@ -71,4 +71,3 @@ export async function getCoordinatesForLocation(locationName: string): Promise<C
     return null
   }
 }
-

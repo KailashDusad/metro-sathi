@@ -470,4 +470,3 @@ export default function MapView({ steps, currentStepIndex, currentLocation, head
     </div>
   )
 }
-

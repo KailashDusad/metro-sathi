@@ -197,4 +197,3 @@ export async function generateTransitRoutes(from: Location, to: Location): Promi
     return []
   }
 }
-

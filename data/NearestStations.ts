@@ -182,4 +182,3 @@ function isPointInRegion(lat: number, lon: number, region: typeof regions.GUJARA
   const [minLon, minLat, maxLon, maxLat] = region.bbox
   return lat >= minLat && lat <= maxLat && lon >= minLon && lon <= maxLon
 }
-

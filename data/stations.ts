@@ -22,4 +22,3 @@ export interface Station {
 export const metroStations: Station[] = []
 export const busStations: Station[] = []
 export const allStations: Station[] = []
-

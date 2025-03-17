@@ -277,4 +277,3 @@ export async function generateRoutes(fromLocation: Location, toLocation: Locatio
     return []
   }
 }
-

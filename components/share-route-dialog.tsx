@@ -142,4 +142,3 @@ function generateRouteSummary(route: Route, fromLocation: string, toLocation: st
     })
     .join("\n")
 }
-

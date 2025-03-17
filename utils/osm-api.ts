@@ -411,4 +411,3 @@ export async function fetchRouteGeometry(
     ]
   }
 }
-

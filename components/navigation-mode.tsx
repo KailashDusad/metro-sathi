@@ -389,4 +389,3 @@ function getStepBackgroundColor(type: string): string {
       return "bg-muted"
   }
 }
-
