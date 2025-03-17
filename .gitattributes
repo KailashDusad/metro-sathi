@@ -1,3 +1,4 @@
 metroNetworkData.json filter=lfs diff=lfs merge=lfs -text
 public/data/metro-network.json filter=lfs diff=lfs merge=lfs -text
+public/data/metro-network-part-* filter=lfs diff=lfs merge=lfs -text
 public/data/metroNetworkData.json filter=lfs diff=lfs merge=lfs -text
