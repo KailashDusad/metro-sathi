@@ -264,15 +264,19 @@ export default function TransitFinder() {
       return
     }
 
+    // Reset all relevant state variables
     setIsSearching(true)
     setError(null)
-    setRoutes([])
-    setNearbyStations([])
+    setRoutes([]) // Clear previous routes
+    setNearbyStations([]) // Clear previous nearby stations
+    setFromLocation(null) // Reset from location
+    setToLocation(null) // Reset to location
+    setSearchPerformance(null) // Reset search performance
 
     try {
       // Get coordinates for locations if not already set
-      const fromCoordinates = fromLocation?.coordinates || (await getCoordinatesForLocation(fromInput))
-      const toCoordinates = toLocation?.coordinates || (await getCoordinatesForLocation(toInput))
+      const fromCoordinates = await getCoordinatesForLocation(fromInput)
+      const toCoordinates = await getCoordinatesForLocation(toInput)
 
       if (!fromCoordinates || !fromCoordinates.lat || !fromCoordinates.lng) {
         throw new Error("Could not find coordinates for your starting location.")
