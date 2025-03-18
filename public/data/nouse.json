@@ -1,0 +1,11 @@
+{
+    "code": 0,
+    "msg": "success",
+    "data": {
+        "list": [{
+            "id": 1,
+            "name": "metro-sathi",
+            "age": 18
+        }]
+    }
+}

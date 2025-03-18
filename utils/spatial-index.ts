@@ -145,3 +145,4 @@ export function getCityFromCoordinates(lat: number, lng: number): string | null 
 
   return null
 }
+

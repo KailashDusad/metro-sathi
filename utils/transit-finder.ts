@@ -1,8 +1,8 @@
 // Transit finder utilities
 import type { Station } from "@/data/stations"
-import { findNearestMetroStations } from "./metro-network"
-import { findNearestBusStations } from "./bus-network"
 import { calculateDistance } from "./distance"
+// Update the imports at the top of the file to use the new data loading utilities
+import { findNearestMetroStations, findNearestBusStations } from "./load-network-data"
 
 // Interface for location
 export interface Location {
@@ -197,3 +197,4 @@ export async function generateTransitRoutes(from: Location, to: Location): Promi
     return []
   }
 }
+

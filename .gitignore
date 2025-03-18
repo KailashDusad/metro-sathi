@@ -29,3 +29,8 @@ next-env.d.ts
 metroData/
 
 public/data/metroNetworkData.json
+
+public/data/busNetwork.json
+public/data/busNetworkRaw.json
+public/data/metroNetwork.json
+public/data/metroNetworkRaw.json

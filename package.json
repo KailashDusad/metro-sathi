@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "tsc ./scripts/fetchNetworkData.ts && node ./scripts/fetchNetworkData.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
