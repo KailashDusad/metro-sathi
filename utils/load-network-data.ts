@@ -35,6 +35,28 @@ export interface BusNetwork {
 let cachedMetroNetwork: MetroNetwork | null = null
 let cachedBusNetwork: BusNetwork | null = null
 
+// Cache for station distance calculations
+const stationDistanceCache = new Map<string, number>()
+
+/**
+ * Clear all caches - call this between searches
+ */
+export function clearNetworkCaches() {
+  console.log("Clearing all network caches")
+  stationDistanceCache.clear()
+
+  // We don't clear cachedMetroNetwork or cachedBusNetwork because those are the actual network data
+  // that should persist between searches
+}
+
+// Add a function to completely reset all caches including network data
+export function resetAllCaches() {
+  console.log("Resetting all caches including network data")
+  stationDistanceCache.clear()
+  cachedMetroNetwork = null
+  cachedBusNetwork = null
+}
+
 /**
  * Load metro network data from JSON file
  */
@@ -84,12 +106,18 @@ export async function loadBusNetworkData(): Promise<BusNetwork> {
 /**
  * Find nearest metro stations to a location
  */
-export async function findNearestMetroStations(lat: number, lng: number, limit = 3): Promise<Station[]> {
+export async function findNearestMetroStations(
+  lat: number,
+  lng: number,
+  limit = 3,
+  maxDistanceKm?: number,
+): Promise<Station[]> {
   try {
     const networkData = await loadMetroNetworkData()
 
     // Calculate distance to each station
     const stationsWithDistance = networkData.stations.map((station) => {
+      // Calculate distance directly without caching to avoid persistence issues
       const distance = calculateDistance({ lat, lng }, { lat: station.location.lat, lng: station.location.lng })
 
       return {
@@ -98,8 +126,14 @@ export async function findNearestMetroStations(lat: number, lng: number, limit =
       }
     })
 
+    // Filter by maximum distance if specified
+    let filteredStations = stationsWithDistance
+    if (maxDistanceKm !== undefined) {
+      filteredStations = stationsWithDistance.filter((station) => station.distance <= maxDistanceKm)
+    }
+
     // Sort by distance and return the nearest ones
-    return stationsWithDistance.sort((a, b) => a.distance! - b.distance!).slice(0, limit)
+    return filteredStations.sort((a, b) => a.distance! - b.distance!).slice(0, limit)
   } catch (error) {
     console.error("Error finding nearest metro stations:", error)
     return []
@@ -109,12 +143,18 @@ export async function findNearestMetroStations(lat: number, lng: number, limit =
 /**
  * Find nearest bus stations to a location
  */
-export async function findNearestBusStations(lat: number, lng: number, limit = 3): Promise<Station[]> {
+export async function findNearestBusStations(
+  lat: number,
+  lng: number,
+  limit = 3,
+  maxDistanceKm?: number,
+): Promise<Station[]> {
   try {
     const networkData = await loadBusNetworkData()
 
     // Calculate distance to each station
     const stationsWithDistance = networkData.stations.map((station) => {
+      // Calculate distance directly without caching to avoid persistence issues
       const distance = calculateDistance({ lat, lng }, { lat: station.location.lat, lng: station.location.lng })
 
       return {
@@ -123,8 +163,14 @@ export async function findNearestBusStations(lat: number, lng: number, limit = 3
       }
     })
 
+    // Filter by maximum distance if specified
+    let filteredStations = stationsWithDistance
+    if (maxDistanceKm !== undefined) {
+      filteredStations = stationsWithDistance.filter((station) => station.distance <= maxDistanceKm)
+    }
+
     // Sort by distance and return the nearest ones
-    return stationsWithDistance.sort((a, b) => a.distance! - b.distance!).slice(0, limit)
+    return filteredStations.sort((a, b) => a.distance! - b.distance!).slice(0, limit)
   } catch (error) {
     console.error("Error finding nearest bus stations:", error)
     return []

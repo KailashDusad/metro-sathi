@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { findNearestTransitStations, generateTransitRoutes } from "@/utils/transit-finder"
 import { getCoordinatesForLocation } from "@/utils/distance"
+import { clearNetworkCaches } from "@/utils/load-network-data"
 import NavigationMode from "@/components/navigation-mode"
 import ShareRouteDialog from "@/components/share-route-dialog"
 import LocationInput from "@/components/location-input"
@@ -246,7 +247,15 @@ export default function TransitFinder() {
 
   // Search for routes
   const handleSearch = async () => {
-    if (!fromInput) {
+    // Reset all derived states
+    setFromLocation(null)
+    setToLocation(null)
+    setRoutes([])
+    setNearbyStations([])
+    setSearchPerformance(null)
+    setError(null)
+
+    if (!fromInput.trim()) {
       toast({
         title: "Enter starting point",
         description: "Please enter your starting location.",
@@ -255,7 +264,7 @@ export default function TransitFinder() {
       return
     }
 
-    if (!toInput) {
+    if (!toInput.trim()) {
       toast({
         title: "Enter destination",
         description: "Please enter your destination.",
@@ -264,14 +273,14 @@ export default function TransitFinder() {
       return
     }
 
-    // Reset all relevant state variables
+    // Clear previous results and reset state
     setIsSearching(true)
-    setError(null)
-    setRoutes([]) // Clear previous routes
-    setNearbyStations([]) // Clear previous nearby stations
-    setFromLocation(null) // Reset from location
-    setToLocation(null) // Reset to location
-    setSearchPerformance(null) // Reset search performance
+
+    // Clear all caches to ensure fresh results
+    clearNetworkCaches()
+
+    // Log the search parameters for debugging
+    console.log(`Searching for routes from "${fromInput}" to "${toInput}"`)
 
     try {
       // Get coordinates for locations if not already set
@@ -314,6 +323,10 @@ export default function TransitFinder() {
       const generatedRoutes = await generateTransitRoutes(from, to)
       const routeGenEndTime = performance.now()
 
+      // Log the generated routes for debugging
+      console.log(`Generated ${generatedRoutes.length} routes for "${fromInput}" to "${toInput}"`)
+
+      // Set routes with the fresh results
       setRoutes(generatedRoutes)
 
       // Set performance metrics

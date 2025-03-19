@@ -21,6 +21,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <header>
+            <link rel="icon" href="/icon-512x512.png" />
+          </header>
           {children}
           <Toaster />
         </ThemeProvider>
