@@ -152,6 +152,10 @@ function detectCityFromCoordinates(lat: number, lon: number): string {
     Kolkata: { minLat: 22.5, maxLat: 22.7, minLon: 88.2, maxLon: 88.5 },
     Ahmedabad: { minLat: 22.9, maxLat: 23.1, minLon: 72.4, maxLon: 72.7 },
     Pune: { minLat: 18.4, maxLat: 18.7, minLon: 73.7, maxLon: 74.0 },
+    Surat: { minLat: 21.1, maxLat: 21.3, minLon: 72.7, maxLon: 72.9 },
+    Jaipur: { minLat: 26.8, maxLat: 27.0, minLon: 75.7, maxLon: 75.9 },
+    Gandhinagar: { minLat: 23.2, maxLat: 23.3, minLon: 72.6, maxLon: 72.7 },
+    Jodhpur: { minLat: 26.2, maxLat: 26.4, minLon: 73.0, maxLon: 73.2 },
   }
 
   for (const [city, bounds] of Object.entries(cityBounds)) {

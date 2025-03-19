@@ -79,7 +79,9 @@ function detectCityFromNetwork(network: string): string {
   if (networkLower.includes("lucknow")) return "Lucknow"
   if (networkLower.includes("jaipur")) return "Jaipur"
   if (networkLower.includes("kochi")) return "Kochi"
-  if (networkLower.includes("nagpur")) return "Nagpur"
+  if (networkLower.includes("surat")) return "Surat"
+  if (networkLower.includes("gandhinagar")) return "Gandhinagar"
+  if (networkLower.includes("jodhpur")) return "Jodhpur"
 
   return "unknown"
 }

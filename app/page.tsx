@@ -172,78 +172,59 @@ export default function TransitFinder() {
   }, [fromLocation, toLocation])
 
   // Get user's current location
-  const getUserLocation = () => {
-    setIsLocating(true)
-    setError(null)
+  const getUserLocation = async () => {
+    setIsLocating(true);
+    setError(null);
 
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const location = {
-            name: "Current Location",
-            coordinates: {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            },
-          }
-          setFromLocation(location)
-          setFromInput("Current Location")
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
 
-          try {
-            // Find nearby stations to current location
-            const startTime = performance.now()
-            const nearby = await findNearestTransitStations(location.coordinates, 3)
-            const endTime = performance.now()
+        const location = {
+          name: "Current Location",
+          coordinates: {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          },
+        };
 
-            if (nearby.length > 0) {
-              toast({
-                title: "Location found",
-                description: `Nearest station: ${nearby[0]?.name} (${nearby[0]?.distance} km)`,
-              })
-            } else {
-              toast({
-                title: "No stations found",
-                description: "No transit stations found near your location. Try searching for a specific destination.",
-              })
-            }
-          } catch (error) {
-            console.error("Error finding nearby stations:", error)
-            setError("Could not find nearby transit stations. Please try again.")
-          } finally {
-            setIsLocating(false)
-          }
-        },
-        (error) => {
-          console.error("Error getting location:", error)
-          setIsLocating(false)
+        setFromLocation(location);
+        setFromInput("Current Location");
 
-          if (error.code === 1) {
-            setError("Location permission denied. Please enter your location manually.")
-            toast({
-              title: "Permission denied",
-              description: "Please enter your location manually.",
-              variant: "destructive",
-            })
-          } else {
-            setError("Unable to get your location. Please enter it manually.")
-            toast({
-              title: "Location error",
-              description: "Unable to get your location. Please enter it manually.",
-              variant: "destructive",
-            })
-          }
-        },
-      )
+        toast({
+          title: "Location found",
+          description: "Your current location has been set.",
+        });
+      } catch (error) {
+        console.error("Error getting location:", error);
+
+        if (error instanceof GeolocationPositionError && error.code === 1) {
+          toast({
+            title: "Permission denied",
+            description: "Please allow location access or enter your location manually.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Location error",
+            description: "Unable to get your location. Please enter it manually.",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        setIsLocating(false);
+      }
     } else {
-      setError("Your browser doesn't support geolocation. Please enter your location manually.")
       toast({
         title: "Geolocation not supported",
         description: "Your browser doesn't support geolocation. Please enter your location manually.",
         variant: "destructive",
-      })
-      setIsLocating(false)
+      });
+      setIsLocating(false);
     }
-  }
+  };
 
   // Search for routes
   const handleSearch = async () => {
@@ -255,7 +236,7 @@ export default function TransitFinder() {
     setSearchPerformance(null)
     setError(null)
 
-    if (!fromInput.trim()) {
+    if (!fromInput.trim() && !fromLocation) {
       toast({
         title: "Enter starting point",
         description: "Please enter your starting location.",
@@ -279,74 +260,75 @@ export default function TransitFinder() {
     // Clear all caches to ensure fresh results
     clearNetworkCaches()
 
-    // Log the search parameters for debugging
-    console.log(`Searching for routes from "${fromInput}" to "${toInput}"`)
-
     try {
-      // Get coordinates for locations if not already set
-      const fromCoordinates = await getCoordinatesForLocation(fromInput)
-      const toCoordinates = await getCoordinatesForLocation(toInput)
+      let fromCoordinates = fromLocation?.coordinates;
+
+      if (!fromCoordinates) {
+        fromCoordinates = await getCoordinatesForLocation(fromInput);
+      }
+
+      const toCoordinates = await getCoordinatesForLocation(toInput);
 
       if (!fromCoordinates || !fromCoordinates.lat || !fromCoordinates.lng) {
-        throw new Error("Could not find coordinates for your starting location.")
+        throw new Error("Could not find coordinates for your starting location.");
       }
 
       if (!toCoordinates || !toCoordinates.lat || !toCoordinates.lng) {
-        throw new Error("Could not find coordinates for your destination.")
+        throw new Error("Could not find coordinates for your destination.");
       }
 
       // Update locations with coordinates
       const from = {
         name: fromInput,
         coordinates: fromCoordinates,
-      }
+      };
 
       const to = {
         name: toInput,
         coordinates: toCoordinates,
-      }
+      };
 
-      setFromLocation(from)
-      setToLocation(to)
+      setFromLocation(from);
+      setToLocation(to);
 
       // Measure performance
-      const nearestStationsStartTime = performance.now()
+      const nearestStationsStartTime = performance.now();
 
       // Find nearby stations to destination
-      const nearbyToDestination = await findNearestTransitStations(toCoordinates, 3)
-      setNearbyStations(nearbyToDestination)
+      const nearbyToDestination = await findNearestTransitStations(toCoordinates, 3);
+      setNearbyStations(nearbyToDestination);
 
-      const nearestStationsEndTime = performance.now()
+      const nearestStationsEndTime = performance.now();
 
       // Generate routes between locations
-      const routeGenStartTime = performance.now()
-      const generatedRoutes = await generateTransitRoutes(from, to)
-      const routeGenEndTime = performance.now()
+      const routeGenStartTime = performance.now();
+      const generatedRoutes = await generateTransitRoutes(from, to);
+      const routeGenEndTime = performance.now();
 
       // Log the generated routes for debugging
-      console.log(`Generated ${generatedRoutes.length} routes for "${fromInput}" to "${toInput}"`)
+      console.log(`Generated ${generatedRoutes.length} routes for "${fromInput}" to "${toInput}"`);
 
       // Set routes with the fresh results
-      setRoutes(generatedRoutes)
+      setRoutes(generatedRoutes);
 
       // Set performance metrics
       setSearchPerformance({
         nearestStationsTime: nearestStationsEndTime - nearestStationsStartTime,
         routeGenerationTime: routeGenEndTime - routeGenStartTime,
-      })
+      });
 
       if (generatedRoutes.length === 0) {
-        setError("No transit routes found between these locations. Try different locations or increase search radius.")
+        setError("No transit routes found between these locations. Try different locations or increase search radius.");
         toast({
           title: "No routes found",
           description: "Could not find any transit routes between these locations.",
           variant: "destructive",
-        })
+        });
       } else {
         toast({
           title: "Routes found",
           description: `Found ${generatedRoutes.length} transit options to your destination.`,
-        })
+        });
       }
     } catch (error) {
       console.error("Error searching for routes:", error)
@@ -414,12 +396,15 @@ export default function TransitFinder() {
               placeholder="Your current location"
               value={fromInput}
               onChange={(value, coordinates) => {
-                setFromInput(value)
+                setFromInput(value);
                 if (coordinates) {
                   setFromLocation({
                     name: value,
                     coordinates: coordinates,
-                  })
+                  });
+                } else {
+                  // Reset `fromLocation` if the input is manually changed
+                  setFromLocation(null);
                 }
               }}
               showLocationButton={true}

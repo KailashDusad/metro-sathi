@@ -18,9 +18,12 @@ const MAJOR_CITIES = [
   { name: "Kolkata", bbox: "22.5,88.2,22.7,88.5" },
   { name: "Hyderabad", bbox: "17.3,78.3,17.6,78.6" },
   { name: "Ahmedabad", bbox: "22.9,72.4,23.1,72.7" },
+  {name: "Surat", bbox: "21.1,72.7,21.3,73.0"},
+  {name: "Gandhinagar", bbox: "23.2,72.6,23.3,72.7"},
   { name: "Pune", bbox: "18.4,73.7,18.7,74.0" },
   { name: "Jaipur", bbox: "26.8,75.7,27.0,76.0" },
   { name: "Lucknow", bbox: "26.7,80.8,27.0,81.1" },
+  {name: "Jodhpur", bbox: "26.2,73.0,26.4,73.2"},
 ]
 
 // Function to get a random Overpass API endpoint
