@@ -111,6 +111,13 @@ export function getCityFromCoordinates(lat: number, lng: number): string | null 
       minLng: 72.4,
       maxLng: 72.7,
     },
+    gandhinagar: {
+      minLat: 23.1,
+      maxLat: 23.3,
+      minLng: 72.6,
+      maxLng: 72.8,
+    },
+    
     mumbai: {
       minLat: 18.9,
       maxLat: 19.2,

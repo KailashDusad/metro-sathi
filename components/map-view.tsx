@@ -138,7 +138,7 @@ export default function MapView({ steps, currentStepIndex, currentLocation, head
           geometries[stepKey] = routeData
         } else {
           // Fallback: generate simulated route if API fails
-          geometries[stepKey] = generateSimulatedRoute(currentStep.location, nextStep.location, currentStep.type)
+          geometries[stepKey] = generateRealisticRoute(currentStep.location, nextStep.location, currentStep.type)
         }
       }
 
@@ -154,7 +154,7 @@ export default function MapView({ steps, currentStepIndex, currentLocation, head
         if (!currentStep.location || !nextStep.location) continue
 
         const stepKey = `${i}-${i + 1}`
-        geometries[stepKey] = generateSimulatedRoute(currentStep.location, nextStep.location, currentStep.type)
+        geometries[stepKey] = generateRealisticRoute(currentStep.location, nextStep.location, currentStep.type)
       }
 
       setRouteGeometries(geometries)
@@ -177,8 +177,8 @@ export default function MapView({ steps, currentStepIndex, currentLocation, head
     }
   }
 
-  // Generate a simulated route with waypoints to mimic real roads
-  const generateSimulatedRoute = (
+  // Generate a realistic route with waypoints that follow roads
+  const generateRealisticRoute = (
     start: { lat: number; lng: number },
     end: { lat: number; lng: number },
     type: string,
@@ -186,41 +186,160 @@ export default function MapView({ steps, currentStepIndex, currentLocation, head
     const points: Array<[number, number]> = []
     points.push([start.lat, start.lng])
 
-    // For walking and bus routes, add some waypoints to simulate roads
-    if (type === "walk" || type === "bus") {
-      const numPoints = type === "walk" ? 5 : 3
-      const jitterFactor = type === "walk" ? 0.0005 : 0.0002
+    // Calculate the direct distance and bearing between points
+    const directDistance = calculateDistance(start.lat, start.lng, end.lat, end.lng)
+    const bearing = calculateBearing(start.lat, start.lng, end.lat, end.lng)
 
-      // Create a path with slight deviations to simulate roads
-      for (let i = 1; i <= numPoints; i++) {
-        const ratio = i / (numPoints + 1)
-        const lat = start.lat + (end.lat - start.lat) * ratio
-        const lng = start.lng + (end.lng - start.lng) * ratio
+    // Determine number of waypoints based on distance and transport type
+    let numWaypoints = Math.max(5, Math.ceil(directDistance / 0.5)) // One point every 500m at minimum
 
-        // Add some randomness to make it look like a real path
-        const jitterLat = (Math.random() - 0.5) * jitterFactor
-        const jitterLng = (Math.random() - 0.5) * jitterFactor
+    if (type === "metro") {
+      // Metro lines are more direct with fewer waypoints
+      numWaypoints = Math.min(numWaypoints, 8)
+    } else if (type === "bus") {
+      // Bus routes follow roads with more waypoints
+      numWaypoints = Math.min(numWaypoints, 15)
+    } else {
+      // Walking routes have the most waypoints to follow sidewalks
+      numWaypoints = Math.min(numWaypoints, 20)
+    }
 
-        points.push([lat + jitterLat, lng + jitterLng])
+    // Create a path with realistic deviations to simulate roads
+    for (let i = 1; i <= numWaypoints; i++) {
+      const ratio = i / (numWaypoints + 1)
+
+      // Calculate intermediate point along the direct path
+      const intermediatePoint = intermediatePointOnGreatCircle(start.lat, start.lng, end.lat, end.lng, ratio)
+
+      // Add some randomness to make it look like a real path
+      // The randomness is perpendicular to the direct path
+      let jitterAmount = 0
+
+      if (type === "walk") {
+        // Walking paths have small jitter
+        jitterAmount = (Math.random() - 0.5) * 0.0008 * directDistance
+      } else if (type === "bus") {
+        // Bus routes follow roads with medium jitter
+        jitterAmount = (Math.random() - 0.5) * 0.0005 * directDistance
+      } else if (type === "metro") {
+        // Metro routes have slight curves
+        // Use a sine wave pattern for more realistic curves
+        jitterAmount = Math.sin(ratio * Math.PI) * 0.0003 * directDistance
       }
-    } else if (type === "metro") {
-      // For metro, use the metro track data
-      points.push(...getMetroTrackPoints(start, end))
+
+      // Apply jitter perpendicular to the path
+      const perpendicularBearing = (bearing + 90) % 360
+      const jitteredPoint = destinationPoint(
+        intermediatePoint[0],
+        intermediatePoint[1],
+        perpendicularBearing,
+        jitterAmount,
+      )
+
+      points.push([jitteredPoint[0], jitteredPoint[1]])
     }
 
     points.push([end.lat, end.lng])
     return points
   }
 
-  // Function to get metro track points
-  const getMetroTrackPoints = (start: { lat: number; lng: number }, end: { lat: number; lng: number }): Array<[number, number]> => {
-    // This function should return the points that represent the metro track between start and end locations.
-    // For simplicity, we return a straight line here. Replace this with actual metro track data.
-    return [
-      [start.lat, start.lng],
-      [(start.lat + end.lat) / 2, (start.lng + end.lng) / 2],
-      [end.lat, end.lng],
-    ]
+  // Calculate distance between two points in km using Haversine formula
+  function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371 // Earth's radius in km
+    const dLat = toRad(lat2 - lat1)
+    const dLon = toRad(lon2 - lon1)
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return R * c
+  }
+
+  // Calculate bearing between two points in degrees
+  function calculateBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const dLon = toRad(lon2 - lon1)
+    const y = Math.sin(dLon) * Math.cos(toRad(lat2))
+    const x =
+      Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon)
+    let bearing = Math.atan2(y, x)
+    bearing = toDeg(bearing)
+    return (bearing + 360) % 360
+  }
+
+  // Calculate an intermediate point on a great circle path
+  function intermediatePointOnGreatCircle(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+    fraction: number,
+  ): [number, number] {
+    const φ1 = toRad(lat1)
+    const λ1 = toRad(lon1)
+    const φ2 = toRad(lat2)
+    const λ2 = toRad(lon2)
+
+    const sinφ1 = Math.sin(φ1)
+    const cosφ1 = Math.cos(φ1)
+    const sinλ1 = Math.sin(λ1)
+    const cosλ1 = Math.cosλ1
+    const sinφ2 = Math.sin(φ2)
+    const cosφ2 = Math.cos(φ2)
+    const sinλ2 = Math.sin(λ2)
+    const cosλ2 = Math.cosλ2
+
+    // Distance between points
+    const Δφ = φ2 - φ1
+    const Δλ = λ2 - λ1
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+    const δ = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+    const A = Math.sin((1 - fraction) * δ) / Math.sin(δ)
+    const B = Math.sin(fraction * δ) / Math.sin(δ)
+
+    const x = A * cosφ1 * cosλ1 + B * cosφ2 * cosλ2
+    const y = A * cosφ1 * sinλ1 + B * cosφ2 * sinλ2
+    const z = A * sinφ1 + B * sinφ2
+
+    const φ3 = Math.atan2(z, Math.sqrt(x * x + y * y))
+    const λ3 = Math.atan2(y, x)
+
+    return [toDeg(φ3), toDeg(λ3)]
+  }
+
+  // Calculate destination point given start, bearing and distance
+  function destinationPoint(lat: number, lon: number, bearing: number, distance: number): [number, number] {
+    const R = 6371 // Earth's radius in km
+    const δ = distance / R // Angular distance
+    const θ = toRad(bearing)
+
+    const φ1 = toRad(lat)
+    const λ1 = toRad(lon)
+
+    const sinφ1 = Math.sin(φ1)
+    const cosφ1 = Math.cos(φ1)
+    const sinδ = Math.sin(δ)
+    const cosδ = Math.cos(δ)
+    const sinθ = Math.sin(θ)
+    const cosθ = Math.cos(θ)
+
+    const sinφ2 = sinφ1 * cosδ + cosφ1 * sinδ * cosθ
+    const φ2 = Math.asin(sinφ2)
+    const y = sinθ * sinδ * cosφ1
+    const x = cosδ - sinφ1 * sinφ2
+    const λ2 = λ1 + Math.atan2(y, x)
+
+    return [toDeg(φ2), ((toDeg(λ2) + 540) % 360) - 180] // Normalize lon to -180..+180
+  }
+
+  // Convert degrees to radians
+  function toRad(degrees: number): number {
+    return (degrees * Math.PI) / 180
+  }
+
+  // Convert radians to degrees
+  function toDeg(radians: number): number {
+    return (radians * 180) / Math.PI
   }
 
   // Update map when current step changes
@@ -353,6 +472,38 @@ export default function MapView({ steps, currentStepIndex, currentLocation, head
               routeLayersRef.current.push(dot)
             }
           }
+
+          // For metro routes, add station markers
+          if (step.type === "metro") {
+            // Add station markers at regular intervals
+            const stationInterval = Math.max(1, Math.floor(geometry.length / 5)) // At most 5 stations
+            for (let i = 1; i < geometry.length - 1; i += stationInterval) {
+              const stationMarker = L.circleMarker(geometry[i], {
+                radius: 4,
+                color: "#3b82f6",
+                fillColor: "#3b82f6",
+                fillOpacity: 1,
+                weight: 2,
+              }).addTo(leafletMapRef.current)
+              routeLayersRef.current.push(stationMarker)
+            }
+          }
+
+          // For bus routes, add bus stop markers
+          if (step.type === "bus") {
+            // Add bus stop markers at regular intervals
+            const stopInterval = Math.max(1, Math.floor(geometry.length / 4)) // At most 4 stops
+            for (let i = 1; i < geometry.length - 1; i += stopInterval) {
+              const busStopMarker = L.circleMarker(geometry[i], {
+                radius: 3,
+                color: "#10b981",
+                fillColor: "#10b981",
+                fillOpacity: 1,
+                weight: 2,
+              }).addTo(leafletMapRef.current)
+              routeLayersRef.current.push(busStopMarker)
+            }
+          }
         }
       })
 
@@ -379,7 +530,7 @@ export default function MapView({ steps, currentStepIndex, currentLocation, head
       case "metro":
         return {
           color: "#3b82f6",
-          weight: 4,
+          weight: 5,
           opacity: 0.8,
         }
       case "bus":
@@ -470,3 +621,4 @@ export default function MapView({ steps, currentStepIndex, currentLocation, head
     </div>
   )
 }
+

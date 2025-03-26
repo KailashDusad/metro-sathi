@@ -372,8 +372,29 @@ export async function fetchRouteGeometry(
   profile = "foot",
 ): Promise<Array<[number, number]>> {
   try {
-    // For demo purposes, we'll simulate a route with waypoints
-    // In a real app, you would use a routing API like OSRM, GraphHopper, or Mapbox Directions
+    // Try to use OSRM API for realistic routing
+    const osrmProfile = profile === "rail" ? "driving" : profile // OSRM doesn't have a rail profile
+    const url = `https://router.project-osrm.org/route/v1/${osrmProfile}/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`
+
+    const response = await fetch(url)
+
+    if (response.ok) {
+      const data = await response.json()
+
+      if (data.routes && data.routes.length > 0 && data.routes[0].geometry) {
+        // OSRM returns coordinates as [lng, lat], we need to convert to [lat, lng]
+        const coordinates = data.routes[0].geometry.coordinates.map(
+          (coord: [number, number]) => [coord[1], coord[0]] as [number, number],
+        )
+
+        return coordinates
+      }
+    }
+
+    // Fallback to simulated route if OSRM fails
+    throw new Error("OSRM API failed, using fallback route generation")
+  } catch (error) {
+    console.warn("Using fallback route generation:", error)
 
     // Create a basic route with some waypoints
     const points: Array<[number, number]> = []
@@ -402,13 +423,6 @@ export async function fetchRouteGeometry(
 
     points.push([toLat, toLng])
     return points
-  } catch (error) {
-    console.error("Error fetching route geometry:", error)
-    // Return a direct line as fallback
-    return [
-      [fromLat, fromLng],
-      [toLat, toLng],
-    ]
   }
 }
 
