@@ -463,31 +463,31 @@ export default function TransitFinder() {
       {nearbyStations.length > 0 && (
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Nearest Transit Options to Your Destination</h2>
-          <div className="space-y-4">
+            {/* <div className="space-y-4">
             {nearbyStations.map((station) => (
               <Card key={station.id} className="w-full">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 p-2 bg-muted rounded-full">
-                      {station.type === "metro" ? <Train className="h-5 w-5" /> : <Bus className="h-5 w-5" />}
-                    </div>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                <div className="mt-1 p-2 bg-muted rounded-full">
+                  {station.type === "metro" ? <Train className="h-5 w-5" /> : <Bus className="h-5 w-5" />}
+                </div>
 
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium">{station.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {station.type === "metro" ? "Metro Station" : "Bus Station"}
-                          </p>
-                        </div>
-                        <div className="text-sm font-medium">{formatDistance(station.distance)} from destination</div>
-                      </div>
-                    </div>
+                <div className="flex-1">
+                  <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium">{station.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                    {station.type === "metro" ? "Metro Station" : "Bus Station"}
+                    </p>
                   </div>
-                </CardContent>
+                  <div className="text-sm font-medium">{formatDistance(station.distance)} from destination</div>
+                  </div>
+                </div>
+                </div>
+              </CardContent>
               </Card>
             ))}
-          </div>
+            </div> */}
         </div>
       )}
 
